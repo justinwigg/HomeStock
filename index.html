@@ -272,6 +272,38 @@ let items=JSON.parse(localStorage.getItem("hs_items")||"null")||seedItems;
 let locations=JSON.parse(localStorage.getItem("hs_locations")||"null")||defaultLocations;
 let shopping=JSON.parse(localStorage.getItem("hs_shopping")||"[]");
 let activity=JSON.parse(localStorage.getItem("hs_activity")||"[]");
+
+
+function exportHomeStockBackup() {
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    items,
+    locations,
+    shopping,
+    activity
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(backup, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "HomeStock-backup.json";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+const backupButton = document.createElement("button");
+backupButton.textContent = "Download inventory backup";
+backupButton.style.cssText =
+  "position:fixed;right:12px;bottom:85px;z-index:20;" +
+  "background:#365b4d;color:white;padding:12px;border-radius:10px;";
+backupButton.onclick = exportHomeStockBackup;
+document.body.appendChild(backupButton);
+
 function save(){localStorage.setItem("hs_items",JSON.stringify(items));localStorage.setItem("hs_locations",JSON.stringify(locations));localStorage.setItem("hs_shopping",JSON.stringify(shopping));localStorage.setItem("hs_activity",JSON.stringify(activity));}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function status(i){return i.qty<=0?"out":i.qty<=i.threshold?"low":"ok"}
