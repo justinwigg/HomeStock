@@ -386,7 +386,7 @@ function removeLocation(name){
 }
 function showLocation(loc){let list=items.filter(i=>i.location===loc);openModal(loc,`<div>${list.length?list.map(i=>`<div class="card item"><div class="emoji">${i.emoji||"📦"}</div><div class="itembody"><strong>${esc(i.name)}</strong><div class="meta">${i.qty} ${esc(i.unit)}</div></div><div class="actions"><button class="secondary" onclick="changeQty(${i.id},-1);showLocation('${esc(loc)}')">−</button><button class="secondary" onclick="changeQty(${i.id},1);showLocation('${esc(loc)}')">＋</button></div></div>`).join(""):'<div class="empty">No products stored here yet.</div>'}</div><button style="width:100%" onclick="closeModal();openItem()">＋ Add product to this location</button>`)}
 function addShopping(){let name=prompt("What do you need to buy?");if(name&&name.trim()){shopping.push({name:name.trim(),qty:"1",note:"Manually added"});save();render()}}
-render();
+// Initial display will be triggered after cloud data loads.
 
 </script>
 </body></html>
