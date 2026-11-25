@@ -548,7 +548,40 @@ async function saveItem(e, id) {
   }
 }
 function editItem(id){openItem(id)}
-function deleteItem(id){if(confirm("Delete this product?")){items=items.filter(i=>i.id!==id);save();closeModal();render()}}
+async function deleteItem(id) {
+  if (!confirm("Delete this product?")) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from("inventory_items")
+      .delete()
+      .eq("id", id)
+      .eq("household_id", window.hsHouseholdId);
+
+    if (error) throw error;
+
+    items = items.filter(i => i.id !== id);
+
+    // Remove shopping-list entries linked to this product
+    const { error: shoppingError } = await supabaseClient
+      .from("shopping_items")
+      .delete()
+      .eq("inventory_item_id", id)
+      .eq("household_id", window.hsHouseholdId);
+
+    if (shoppingError) throw shoppingError;
+
+    shopping = shopping.filter(s => s.inventory_item_id !== id);
+
+    save();
+    closeModal();
+    render();
+
+  } catch (error) {
+    console.error("Cloud product deletion failed:", error);
+    alert("Couldn't delete this product: " + error.message);
+  }
+}
 function addLocation(){let name=prompt("Name this storage location:");if(name&&name.trim()&&!locations.includes(name.trim())){locations.push(name.trim());save();render()}}function renameLocation(oldName){
   const name=prompt("Rename storage location:",oldName);
   if(!name||!name.trim())return;
