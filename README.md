@@ -1,0 +1,2 @@
+# HomeStock
+Home inventory Application
