@@ -87,23 +87,6 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_PUBLISHABLE_KEY
 );
 
-// Temporary connection test
-(async () => {
-  try {
-    const { error } = await supabaseClient
-      .from("households")
-      .select("id")
-      .limit(1);
-
-    if (error) throw error;
-
-    alert("HomeStock successfully connected to Supabase!");
-  } catch (error) {
-    console.error("Supabase connection error:", error);
-    alert("Connection failed: " + error.message);
-  }
-})();
-
 const seedItems=[
 {id:1,name:"Laundry detergent",category:"Laundry",qty:1,unit:"bottle",threshold:2,location:"Laundry room",emoji:"🧺",price:14.99,history:[]},
 {id:2,name:"Paper towels",category:"Paper goods",qty:1,unit:"pack",threshold:2,location:"Pantry",emoji:"🧻",price:18.99,history:[]},
