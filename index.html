@@ -87,6 +87,143 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_PUBLISHABLE_KEY
 );
 
+// HomeStock authentication screen
+(function () {
+  const style = document.createElement("style");
+  style.textContent = `
+    #hs-auth {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: #f5f6f8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    #hs-auth .panel {
+      background: white;
+      width: 100%;
+      max-width: 390px;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px #0001;
+    }
+    #hs-auth h1 { margin-top: 0; }
+    #hs-auth input {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 13px;
+      margin: 8px 0 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    #hs-auth button {
+      width: 100%;
+      padding: 13px;
+      margin-top: 9px;
+      border: 0;
+      border-radius: 8px;
+      background: #243b53;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #hs-auth button.secondary {
+      background: #e8edf2;
+      color: #243b53;
+    }
+    #hs-auth #hs-auth-message {
+      font-size: 14px;
+      line-height: 1.5;
+      margin-top: 14px;
+    }
+  `;
+  document.head.appendChild(style);
+
+  const screen = document.createElement("div");
+  screen.id = "hs-auth";
+  screen.innerHTML = `
+    <div class="panel">
+      <h1>HomeStock</h1>
+      <p>Your household inventory, all in one place.</p>
+      <form id="hs-auth-form">
+        <label>Email</label>
+        <input id="hs-email" type="email" required
+          placeholder="you@example.com" autocomplete="email">
+        <label>Password</label>
+        <input id="hs-password" type="password" required
+          minlength="6" placeholder="At least 6 characters"
+          autocomplete="current-password">
+        <button type="submit">Sign In</button>
+        <button type="button" class="secondary" id="hs-signup">
+          Create Account
+        </button>
+      </form>
+      <div id="hs-auth-message"></div>
+    </div>
+  `;
+  document.body.appendChild(screen);
+
+  const message = document.getElementById("hs-auth-message");
+  const email = document.getElementById("hs-email");
+  const password = document.getElementById("hs-password");
+
+  function showMessage(text) {
+    message.textContent = text;
+  }
+
+  document.getElementById("hs-auth-form")
+    .addEventListener("submit", async function (event) {
+      event.preventDefault();
+      showMessage("Signing in...");
+
+      const { error } = await supabaseClient.auth.signInWithPassword({
+        email: email.value.trim(),
+        password: password.value
+      });
+
+      if (error) {
+        showMessage(error.message);
+      }
+    });
+
+  document.getElementById("hs-signup")
+    .addEventListener("click", async function () {
+      showMessage("Creating your account...");
+
+      const { data, error } = await supabaseClient.auth.signUp({
+        email: email.value.trim(),
+        password: password.value
+      });
+
+      if (error) {
+        showMessage(error.message);
+      } else if (!data.session) {
+        showMessage(
+          "Account created! Check your email for a confirmation link, " +
+          "then return here and sign in."
+        );
+      } else {
+        showMessage("Account created successfully!");
+      }
+    });
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (session) {
+      screen.style.display = "none";
+    }
+  });
+
+  supabaseClient.auth.getSession().then(({ data }) => {
+    if (data.session) {
+      screen.style.display = "none";
+    }
+  });
+})();
+
 const seedItems=[
 {id:1,name:"Laundry detergent",category:"Laundry",qty:1,unit:"bottle",threshold:2,location:"Laundry room",emoji:"🧺",price:14.99,history:[]},
 {id:2,name:"Paper towels",category:"Paper goods",qty:1,unit:"pack",threshold:2,location:"Pantry",emoji:"🧻",price:18.99,history:[]},
