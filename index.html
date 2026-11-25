@@ -211,11 +211,39 @@ const supabaseClient = window.supabase.createClient(
       }
     });
 
-  supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (session) {
-      screen.style.display = "none";
+  async function handleLogin(session) {
+  if (!session) return;
+
+  screen.style.display = "none";
+
+  const { data: memberships, error } = await supabaseClient
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", session.user.id);
+
+  if (error) {
+    alert("Could not check household: " + error.message);
+    return;
+  }
+
+  if (!memberships || memberships.length === 0) {
+    const { error: createError } = await supabaseClient
+      .rpc("create_household", {
+        household_name: "The Wigg Household"
+      });
+
+    if (createError) {
+      alert("Could not create household: " + createError.message);
+      return;
     }
-  });
+  }
+
+  alert("Connected to The Wigg Household!");
+}
+
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  if (session) handleLogin(session);
+});
 
   supabaseClient.auth.getSession().then(({ data }) => {
     if (data.session) {
