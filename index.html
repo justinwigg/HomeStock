@@ -411,17 +411,142 @@ function bought(n) {
 
 function openModal(title,body){document.getElementById("modalTitle").textContent=title;document.getElementById("modalBody").innerHTML=body;document.getElementById("modal").classList.add("show")}
 function closeModal(){document.getElementById("modal").classList.remove("show")}
-function openItem(id){let i=id?items.find(x=>x.id===id):null;openModal(i?"Edit product":"Add product",`<form id="itemForm" onsubmit="saveItem(event,${id||"null"})"><div class="formgrid">
-<div class="full"><label>PRODUCT NAME</label><input name="name" required placeholder="e.g. Laundry detergent" value="${esc(i?.name||"")}"></div>
-<div><label>CATEGORY</label><input name="category" placeholder="Cleaning" value="${esc(i?.category||"")}"></div>
-<div><label>EMOJI</label><input name="emoji" value="${esc(i?.emoji||"📦")}"></div>
-<div><label>QUANTITY</label><input name="qty" type="number" min="0" step=".1" value="${i?.qty??0}"></div>
-<div><label>UNIT</label><input name="unit" placeholder="bottles, rolls…" value="${esc(i?.unit||"units")}"></div>
-<div><label>LOW-STOCK THRESHOLD</label><input name="threshold" type="number" min="0" step=".1" value="${i?.threshold??1}"></div>
-<div><label>UNIT PRICE ($)</label><input name="price" type="number" min="0" step=".01" value="${i?.price??0}"></div>
-<div class="full"><label>STORAGE LOCATION</label><select name="location"> <option value="" ${!i?.location?"selected":""}>Unassigned</option> ${locations.map(l=>`<option value="${esc(l)}" ${i?.location===l?"selected":""}>${esc(l)}</option>`).join("")} </select></div>
-</div><button style="width:100%;margin-top:8px">Save product</button></form>${i?`<button class="ghost" style="margin-top:10px" onclick="deleteItem(${i.id})">Delete product</button>`:""}`)}
-function saveItem(e,id){e.preventDefault();let f=new FormData(e.target),o=Object.fromEntries(f.entries());o.qty=Number(o.qty);o.threshold=Number(o.threshold);o.price=Number(o.price);if(id){Object.assign(items.find(x=>x.id===id),o)}else{items.push({   ...o,   id: crypto.randomUUID(),   history: [] })}save();closeModal();render();}
+function openItem(id) {
+  let i = id ? items.find(x => x.id === id) : null;
+
+  openModal(i ? "Edit product" : "Add product", `
+    <form id="itemForm" onsubmit='saveItem(event,${JSON.stringify(id || null)})'>
+      <div class="formgrid">
+        <div class="full">
+          <label>PRODUCT NAME</label>
+          <input name="name" required placeholder="e.g. Laundry detergent" value="${esc(i?.name || "")}">
+        </div>
+        <div>
+          <label>CATEGORY</label>
+          <input name="category" placeholder="Cleaning" value="${esc(i?.category || "")}">
+        </div>
+        <div>
+          <label>EMOJI</label>
+          <input name="emoji" value="${esc(i?.emoji || "📦")}">
+        </div>
+        <div>
+          <label>QUANTITY</label>
+          <input name="qty" type="number" min="0" step=".1" value="${i?.qty ?? 0}">
+        </div>
+        <div>
+          <label>UNIT</label>
+          <input name="unit" placeholder="bottles, rolls…" value="${esc(i?.unit || "units")}">
+        </div>
+        <div>
+          <label>LOW-STOCK THRESHOLD</label>
+          <input name="threshold" type="number" min="0" step=".1" value="${i?.threshold ?? 1}">
+        </div>
+        <div>
+          <label>UNIT PRICE ($)</label>
+          <input name="price" type="number" min="0" step=".01" value="${i?.price ?? 0}">
+        </div>
+        <div class="full">
+          <label>STORAGE LOCATION</label>
+          <select name="location">
+            <option value="" ${!i?.location ? "selected" : ""}>Unassigned</option>
+            ${locations.map(l => `<option value="${esc(l)}" ${i?.location === l ? "selected" : ""}>${esc(l)}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <button style="width:100%;margin-top:8px">Save product</button>
+    </form>
+    ${i ? `<button class="ghost" style="margin-top:10px" onclick='deleteItem(${JSON.stringify(i.id)})'>Delete product</button>` : ""}
+  `);
+}
+async function saveItem(e, id) {
+  e.preventDefault();
+
+  const form = new FormData(e.target);
+  const o = Object.fromEntries(form.entries());
+
+  o.qty = Number(o.qty);
+  o.threshold = Number(o.threshold);
+  o.price = Number(o.price);
+
+  const householdId = window.hsHouseholdId;
+
+  try {
+    if (!householdId) {
+      throw new Error("No household is connected.");
+    }
+
+    // Find or create the selected storage location
+    let locationId = null;
+
+    if (o.location) {
+      const { data: location, error: locationError } =
+        await supabaseClient
+          .from("locations")
+          .upsert(
+            {
+              household_id: householdId,
+              name: o.location
+            },
+            { onConflict: "household_id,name" }
+          )
+          .select("id")
+          .single();
+
+      if (locationError) throw locationError;
+
+      locationId = location.id;
+
+      if (!locations.includes(o.location)) {
+        locations.push(o.location);
+      }
+    }
+
+    const itemId = id || crypto.randomUUID();
+    const existing = items.find(x => x.id === itemId);
+
+    // Write the product to Supabase
+    const { error: itemError } = await supabaseClient
+      .from("inventory_items")
+      .upsert({
+        id: itemId,
+        household_id: householdId,
+        location_id: locationId,
+        name: o.name,
+        category: o.category,
+        brand: existing?.brand || null,
+        quantity: o.qty,
+        unit: o.unit,
+        low_stock_threshold: o.threshold,
+        unit_price: o.price,
+        barcode: existing?.barcode || null,
+        emoji: o.emoji,
+        notes: existing?.notes || null
+      });
+
+    if (itemError) throw itemError;
+
+    const updatedItem = {
+      ...existing,
+      ...o,
+      id: itemId,
+      history: existing?.history || []
+    };
+
+    if (existing) {
+      Object.assign(existing, updatedItem);
+    } else {
+      items.push(updatedItem);
+    }
+
+    save();
+    closeModal();
+    render();
+
+  } catch (error) {
+    console.error("Cloud product save failed:", error);
+    alert("Couldn't save this product: " + error.message);
+  }
+}
 function editItem(id){openItem(id)}
 function deleteItem(id){if(confirm("Delete this product?")){items=items.filter(i=>i.id!==id);save();closeModal();render()}}
 function addLocation(){let name=prompt("Name this storage location:");if(name&&name.trim()&&!locations.includes(name.trim())){locations.push(name.trim());save();render()}}function renameLocation(oldName){
