@@ -295,7 +295,80 @@ function renderInventory(){let q=(document.getElementById("search")?.value||"").
 function renderShopping(){document.getElementById("shoppingList").innerHTML=shopping.length?shopping.map((s,n)=>`<div class="card item"><input type="checkbox" style="width:20px;margin:0" onchange="bought(${n})"><div class="itembody"><div class="itemname">${esc(s.name)}</div><div class="meta">${esc(s.qty||"1")} · ${esc(s.note||"")}</div></div><button class="ghost" onclick="shopping.splice(${n},1);save();render()">×</button></div>`).join(""):'<div class="card empty">Your shopping list is empty. Low-stock items can be added here.</div>'}
 function renderInsights(){let total=items.reduce((s,i)=>s+(Number(i.price)||0)*i.qty,0);document.getElementById("insightSummary").innerHTML=`<div class="rowbetween"><span class="muted">Products tracked</span><strong>${items.length}</strong></div><hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><div class="rowbetween"><span class="muted">Estimated value on hand</span><strong>$${total.toFixed(2)}</strong></div><hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><div class="rowbetween"><span class="muted">Recorded usage events</span><strong>${activity.filter(a=>a.action==="used").length}</strong></div>`;document.getElementById("usageHistory").innerHTML=activity.filter(a=>a.action==="used").slice(0,12).map(a=>`<div class="card rowbetween"><div><strong>${esc(a.name)}</strong><div class="meta">${new Date(a.date).toLocaleString()}</div></div><span>−${a.amount}</span></div>`).join("")||'<div class="card empty">Record a few usage events to start building consumption history.</div>'}
 function showView(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.getElementById(v).classList.add("active");document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===v));}
-function changeQty(id,delta){let i=items.find(x=>x.id===id);if(!i)return;i.qty=Math.max(0,Number(i.qty)+delta);log(i,delta<0?"used":"replenished",Math.abs(delta));if(i.qty<=i.threshold&&!shopping.some(s=>s.name===i.name))shopping.push({name:i.name,qty:"1 "+i.unit,note:"Automatically added — low stock"});save();render();}
+async function changeQty(id, delta) {
+  let i = items.find(x => x.id === id);
+  if (!i) return;
+
+  i.qty = Math.max(0, Number(i.qty) + delta);
+
+  const action = delta < 0 ? "used" : "replenished";
+  const amount = Math.abs(delta);
+
+  log(i, action, amount);
+
+  try {
+    const householdId = window.hsHouseholdId;
+
+    // Update the cloud inventory quantity
+    const { error: updateError } = await supabaseClient
+      .from("inventory_items")
+      .update({ quantity: i.qty })
+      .eq("id", i.id)
+      .eq("household_id", householdId);
+
+    if (updateError) throw updateError;
+
+    // Record the activity
+    const { error: activityError } = await supabaseClient
+      .from("activity_events")
+      .insert({
+        household_id: householdId,
+        inventory_item_id: i.id,
+        user_id: null,
+        event_type: delta < 0 ? "consumed" : "restocked",
+        quantity_change: amount
+      });
+
+    if (activityError) throw activityError;
+
+    // Automatically add low-stock products to the cloud shopping list
+    if (
+      i.qty <= i.threshold &&
+      !shopping.some(s => s.name.toLowerCase() === i.name.toLowerCase())
+    ) {
+      const entry = {
+        id: crypto.randomUUID(),
+        name: i.name,
+        qty: "1 " + i.unit,
+        note: "Automatically added — low stock"
+      };
+
+      const { error: shoppingError } = await supabaseClient
+        .from("shopping_items")
+        .insert({
+          id: entry.id,
+          household_id: householdId,
+          inventory_item_id: i.id,
+          name: i.name,
+          quantity: 1,
+          unit: i.unit,
+          purchased: false
+        });
+
+      if (shoppingError) throw shoppingError;
+
+      shopping.push(entry);
+    }
+
+    save();
+    render();
+
+  } catch (error) {
+    console.error("Cloud quantity update failed:", error);
+    alert("Couldn't save this inventory change to the cloud: " + error.message);
+    render();
+  }
+}
 function toShopping(id) {
   let i = items.find(x => x.id === id);
 
