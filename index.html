@@ -211,8 +211,12 @@ const supabaseClient = window.supabase.createClient(
       }
     });
 
+let loginCheckInProgress = false;
+
+
   async function handleLogin(session) {
-  if (!session) return;
+  if (!session) return;if (loginCheckInProgress) return;
+loginCheckInProgress = true;
 
   screen.style.display = "none";
 
@@ -238,18 +242,21 @@ const supabaseClient = window.supabase.createClient(
     }
   }
 
-  alert("Connected to The Wigg Household!");
+  console.log("Connected to The Wigg Household!");
 }
 
 supabaseClient.auth.onAuthStateChange((event, session) => {
   if (session) handleLogin(session);
 });
 
-  supabaseClient.auth.getSession().then(({ data }) => {
-    if (data.session) {
-      screen.style.display = "none";
-    }
-  });
+
+supabaseClient.auth.getSession().then(({ data }) => {
+  if (data.session) {
+    handleLogin(data.session);
+  }
+});
+
+  
 })();
 
 const seedItems=[
