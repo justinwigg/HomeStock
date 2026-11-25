@@ -126,7 +126,39 @@ function openItem(id){let i=id?items.find(x=>x.id===id):null;openModal(i?"Edit p
 function saveItem(e,id){e.preventDefault();let f=new FormData(e.target),o=Object.fromEntries(f.entries());o.qty=Number(o.qty);o.threshold=Number(o.threshold);o.price=Number(o.price);if(id){Object.assign(items.find(x=>x.id===id),o)}else{items.push({...o,id:Date.now(),history:[]})}save();closeModal();render();}
 function editItem(id){openItem(id)}
 function deleteItem(id){if(confirm("Delete this product?")){items=items.filter(i=>i.id!==id);save();closeModal();render()}}
-function addLocation(){let name=prompt("Name this storage location:");if(name&&name.trim()&&!locations.includes(name.trim())){locations.push(name.trim());save();render()}}
+function addLocation(){let name=prompt("Name this storage location:");if(name&&name.trim()&&!locations.includes(name.trim())){locations.push(name.trim());save();render()}}function renameLocation(oldName){
+  const name=prompt("Rename storage location:",oldName);
+  if(!name||!name.trim())return;
+
+  const newName=name.trim();
+
+  if(locations.some(l=>l.toLowerCase()===newName.toLowerCase()&&l!==oldName)){
+    alert("A location with that name already exists.");
+    return;
+  }
+
+  locations=locations.map(l=>l===oldName?newName:l);
+  items.forEach(i=>{
+    if(i.location===oldName)i.location=newName;
+  });
+
+  save();
+  render();
+}
+
+function removeLocation(name){
+  const count=items.filter(i=>i.location===name).length;
+
+  if(!confirm(`Remove "${name}"? ${count} products will be moved to Unassigned. Their inventory information will be preserved.`))return;
+
+  items.forEach(i=>{
+    if(i.location===name)i.location="";
+  });
+
+  locations=locations.filter(l=>l!==name);
+  save();
+  render();
+}
 function showLocation(loc){let list=items.filter(i=>i.location===loc);openModal(loc,`<div>${list.length?list.map(i=>`<div class="card item"><div class="emoji">${i.emoji||"📦"}</div><div class="itembody"><strong>${esc(i.name)}</strong><div class="meta">${i.qty} ${esc(i.unit)}</div></div><div class="actions"><button class="secondary" onclick="changeQty(${i.id},-1);showLocation('${esc(loc)}')">−</button><button class="secondary" onclick="changeQty(${i.id},1);showLocation('${esc(loc)}')">＋</button></div></div>`).join(""):'<div class="empty">No products stored here yet.</div>'}</div><button style="width:100%" onclick="closeModal();openItem()">＋ Add product to this location</button>`)}
 function addShopping(){let name=prompt("What do you need to buy?");if(name&&name.trim()){shopping.push({name:name.trim(),qty:"1",note:"Manually added"});save();render()}}
 render();
