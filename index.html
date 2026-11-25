@@ -75,6 +75,7 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
  <button class="tab" data-view="insights" onclick="showView('insights')"><b>⌁</b>Insights</button>
 </nav>
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="sheethead"><h2 id="modalTitle">Add item</h2><button class="close" onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const seedItems=[
 {id:1,name:"Laundry detergent",category:"Laundry",qty:1,unit:"bottle",threshold:2,location:"Laundry room",emoji:"🧺",price:14.99,history:[]},
@@ -163,5 +164,5 @@ function showLocation(loc){let list=items.filter(i=>i.location===loc);openModal(
 function addShopping(){let name=prompt("What do you need to buy?");if(name&&name.trim()){shopping.push({name:name.trim(),qty:"1",note:"Manually added"});save();render()}}
 render();
 if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</script>
 </body></html>
