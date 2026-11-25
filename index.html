@@ -215,35 +215,7 @@ let loginCheckInProgress = false;
 
 
    async function handleLogin(session) {   if (!session || loginCheckInProgress) return;    loginCheckInProgress = true;   screen.style.display = "none";    try {     let { data: memberships, error } = await supabaseClient       .from("household_members")       .select("household_id")       .eq("user_id", session.user.id);      if (error) throw error;      if (!memberships || memberships.length === 0) {       const { error: createError } = await supabaseClient         .rpc("create_household", {           household_name: "The Wigg Household"         });        if (createError) throw createError;        const result = await supabaseClient         .from("household_members")         .select("household_id")         .eq("user_id", session.user.id);        if (result.error) throw result.error;       memberships = result.data;     }      if (!memberships || memberships.length === 0) {       throw new Error("No household membership found.");     }      window.hsHouseholdId = memberships[0].household_id;      console.log("HomeStock household connected:", window.hsHouseholdId);      if (window.hsLoadCloudData) {       await window.hsLoadCloudData();     }    } catch (error) {     console.error("HomeStock connection error:", error);     alert("HomeStock connection error: " + error.message);     loginCheckInProgress = false;   } } 
-  if (!session) return;if (loginCheckInProgress) return;
-loginCheckInProgress = true;
 
-  screen.style.display = "none";
-
-  const { data: memberships, error } = await supabaseClient
-    .from("household_members")
-    .select("household_id")
-    .eq("user_id", session.user.id);
-
-  if (error) {
-    alert("Could not check household: " + error.message);
-    return;
-  }
-
-  if (!memberships || memberships.length === 0) {
-    const { error: createError } = await supabaseClient
-      .rpc("create_household", {
-        household_name: "The Wigg Household"
-      });
-
-    if (createError) {
-      alert("Could not create household: " + createError.message);
-      return;
-    }
-  }
-
-  console.log("Connected to The Wigg Household!");
-}
 
 supabaseClient.auth.onAuthStateChange((event, session) => {
   if (session) handleLogin(session);
