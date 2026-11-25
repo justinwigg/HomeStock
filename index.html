@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#243d35">
+<title>HomeStock — Household Inventory</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--green:#243d35;--green2:#365b4d;--bg:#f5f6f3;--card:#fff;--ink:#202923;--muted:#758078;--line:#e6eae5;--amber:#a66b1c;--red:#b64c42}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-bottom:88px}
+header{background:var(--green);color:white;padding:22px 18px 20px;border-radius:0 0 24px 24px}
+.top{display:flex;justify-content:space-between;align-items:center}.brand{font-size:23px;font-weight:750;letter-spacing:-.5px}.sub{font-size:12px;color:#c8d8cf;margin-top:4px}
+main{max-width:720px;margin:auto;padding:18px 16px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.stat{background:#ffffff18;padding:13px;border-radius:14px}.stat strong{display:block;font-size:27px}.stat span{font-size:12px;color:#d1ded6}
+h2{font-size:17px;margin:22px 0 12px}.sectionhead{display:flex;justify-content:space-between;align-items:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
+.item{display:flex;align-items:center;gap:12px}.emoji{width:43px;height:43px;border-radius:12px;background:#f0f3ef;display:grid;place-items:center;font-size:23px;flex-shrink:0}
+.itembody{min-width:0;flex:1}.itemname{font-weight:650}.meta{font-size:12px;color:var(--muted);margin-top:3px}
+.pill{font-size:11px;padding:5px 8px;border-radius:20px;background:#edf3ee;color:var(--green2);white-space:nowrap}.pill.low{background:#fff2df;color:var(--amber)}.pill.out{background:#fdebea;color:var(--red)}
+button{border:0;border-radius:12px;padding:11px 14px;font:600 13px inherit;cursor:pointer;background:var(--green);color:white}
+button.secondary{background:#edf1ed;color:var(--green)}button.ghost{background:transparent;color:var(--green);padding:7px}
+.actions{display:flex;gap:7px}.actions button{padding:8px 10px}.tabs{position:fixed;bottom:0;left:0;right:0;background:#fffffff2;backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:9px 5px calc(9px + env(safe-area-inset-bottom));z-index:5}
+.tab{background:none;color:var(--muted);padding:5px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px}.tab b{font-size:19px}.tab.active{color:var(--green)}
+.view{display:none}.view.active{display:block}.empty{text-align:center;padding:30px 12px;color:var(--muted)}
+input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;background:white;font:inherit;margin:5px 0 12px;color:var(--ink)}
+label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.full{grid-column:1/-1}
+.modal{position:fixed;inset:0;background:#0007;display:none;align-items:flex-end;z-index:10}.modal.show{display:flex}.sheet{background:var(--bg);width:100%;max-height:90vh;overflow:auto;border-radius:22px 22px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom));max-width:720px;margin:auto}.sheethead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.sheet h2{margin:0}.close{background:#e8ece8;color:var(--ink);font-size:18px;padding:6px 11px}
+.locationgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.loc{padding:16px;border:1px solid var(--line);border-radius:15px;background:white;text-align:left;color:var(--ink)}.loc strong{display:block;margin-top:8px}.loc small{color:var(--muted)}
+.muted{color:var(--muted)}.rowbetween{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.notice{background:#edf3ee;border-radius:12px;padding:12px;color:#365b4d;font-size:12px;line-height:1.5;margin:12px 0}
+@media(min-width:600px){.modal{align-items:center}.sheet{border-radius:22px}.stats{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<header>
+ <div class="top"><div><div class="brand">HomeStock</div><div class="sub">A calmer way to run your household</div></div><div style="font-size:28px">⌂</div></div>
+ <div class="stats">
+  <div class="stat"><strong id="statItems">0</strong><span>Items tracked</span></div>
+  <div class="stat"><strong id="statLow">0</strong><span>Need attention</span></div>
+ </div>
+</header>
+<main>
+ <section class="view active" id="home">
+  <div class="sectionhead"><h2>Needs attention</h2><button class="secondary" onclick="showView('inventory')">View inventory</button></div>
+  <div id="attention"></div>
+  <h2>Storage locations</h2><div class="locationgrid" id="homeLocations"></div>
+  <h2>Recent activity</h2><div id="recent"></div>
+ </section>
+ <section class="view" id="inventory">
+  <div class="sectionhead"><h2>Inventory</h2><button onclick="openItem()">＋ Add item</button></div>
+  <input id="search" placeholder="Search products…" oninput="renderInventory()">
+  <div id="inventoryList"></div>
+ </section>
+ <section class="view" id="locations">
+  <div class="sectionhead"><h2>Locations</h2><button onclick="addLocation()">＋ Add</button></div>
+  <div class="notice">In the next version, an NFC sticker at each location will open that location directly. For now, tap a location below.</div>
+  <div class="locationgrid" id="locationsList"></div>
+ </section>
+ <section class="view" id="shopping">
+  <div class="sectionhead"><h2>Shopping list</h2><button class="secondary" onclick="addShopping()">＋ Add item</button></div>
+  <div id="shoppingList"></div>
+ </section>
+ <section class="view" id="insights">
+  <h2>Household insights</h2><div class="card" id="insightSummary"></div>
+  <div class="notice">Usage predictions become more useful as you record consumption and replenishment over time. This prototype starts collecting that history now.</div>
+  <h2>Recent consumption</h2><div id="usageHistory"></div>
+ </section>
+</main>
+<nav class="tabs">
+ <button class="tab active" data-view="home" onclick="showView('home')"><b>⌂</b>Home</button>
+ <button class="tab" data-view="inventory" onclick="showView('inventory')"><b>▤</b>Inventory</button>
+ <button class="tab" data-view="locations" onclick="showView('locations')"><b>▦</b>Locations</button>
+ <button class="tab" data-view="shopping" onclick="showView('shopping')"><b>☷</b>Shopping</button>
+ <button class="tab" data-view="insights" onclick="showView('insights')"><b>⌁</b>Insights</button>
+</nav>
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="sheethead"><h2 id="modalTitle">Add item</h2><button class="close" onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
+<script>
+const seedItems=[
+{id:1,name:"Laundry detergent",category:"Laundry",qty:1,unit:"bottle",threshold:2,location:"Laundry room",emoji:"🧺",price:14.99,history:[]},
+{id:2,name:"Paper towels",category:"Paper goods",qty:1,unit:"pack",threshold:2,location:"Pantry",emoji:"🧻",price:18.99,history:[]},
+{id:3,name:"Dish soap",category:"Cleaning",qty:3,unit:"bottles",threshold:1,location:"Kitchen",emoji:"🫧",price:4.49,history:[]},
+{id:4,name:"Hand soap refill",category:"Personal care",qty:1,unit:"refill",threshold:2,location:"Bathroom closet",emoji:"🧴",price:8.99,history:[]},
+{id:5,name:"Trash bags",category:"Cleaning",qty:2,unit:"boxes",threshold:1,location:"Pantry",emoji:"🗑️",price:12.99,history:[]},
+{id:6,name:"Toilet paper",category:"Paper goods",qty:18,unit:"rolls",threshold:8,location:"Hall closet",emoji:"🧻",price:16.99,history:[]}
+];
+const defaultLocations=["Pantry","Laundry room","Bathroom closet","Hall closet","Kitchen","Garage"];
+let items=JSON.parse(localStorage.getItem("hs_items")||"null")||seedItems;
+let locations=JSON.parse(localStorage.getItem("hs_locations")||"null")||defaultLocations;
+let shopping=JSON.parse(localStorage.getItem("hs_shopping")||"[]");
+let activity=JSON.parse(localStorage.getItem("hs_activity")||"[]");
+function save(){localStorage.setItem("hs_items",JSON.stringify(items));localStorage.setItem("hs_locations",JSON.stringify(locations));localStorage.setItem("hs_shopping",JSON.stringify(shopping));localStorage.setItem("hs_activity",JSON.stringify(activity));}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function status(i){return i.qty<=0?"out":i.qty<=i.threshold?"low":"ok"}
+function log(item,action,amount){activity.unshift({name:item.name,action,amount,date:new Date().toISOString()});activity=activity.slice(0,40);item.history=item.history||[];item.history.push({action,amount,date:new Date().toISOString()});}
+function render(){
+ document.getElementById("statItems").textContent=items.length;
+ document.getElementById("statLow").textContent=items.filter(i=>status(i)!=="ok").length;
+ const needs=items.filter(i=>status(i)!=="ok");
+ document.getElementById("attention").innerHTML=needs.length?needs.map(card).join(""):'<div class="card empty">Everything is looking good. No items need attention.</div>';
+ document.getElementById("homeLocations").innerHTML=locations.slice(0,4).map(loc=>`<button class="loc" onclick="showLocation('${esc(loc)}')"><span style="font-size:24px">▣</span><strong>${esc(loc)}</strong><small>${items.filter(i=>i.location===loc).length} products</small></button>`).join("");
+ document.getElementById("locationsList").innerHTML=locations.map(loc=>`<button class="loc" onclick="showLocation('${esc(loc)}')"><span style="font-size:24px">▣</span><strong>${esc(loc)}</strong><small>${items.filter(i=>i.location===loc).length} products</small></button>`).join("");
+ document.getElementById("recent").innerHTML=activity.slice(0,4).map(a=>`<div class="card"><div class="rowbetween"><strong>${esc(a.name)}</strong><span class="muted">${a.action==="used"?"−":"+"}${a.amount}</span></div><div class="meta">${a.action==="used"?"Used":"Replenished"} · ${new Date(a.date).toLocaleDateString()}</div></div>`).join("")||'<div class="card empty">Your updates will appear here.</div>';
+ renderInventory();renderShopping();renderInsights();
+}
+function card(i){let st=status(i);return `<div class="card"><div class="item"><div class="emoji">${i.emoji||"📦"}</div><div class="itembody"><div class="itemname">${esc(i.name)}</div><div class="meta">${i.qty} ${esc(i.unit)} · ${esc(i.location)}</div></div><span class="pill ${st}">${st==="out"?"Out of stock":"Low stock"}</span></div><div class="actions" style="margin-top:12px"><button class="secondary" onclick="changeQty(${i.id},-1)">− Used 1</button><button class="secondary" onclick="changeQty(${i.id},1)">＋ Add 1</button><button class="ghost" onclick="toShopping(${i.id})">＋ List</button></div></div>`}
+function renderInventory(){let q=(document.getElementById("search")?.value||"").toLowerCase();let list=items.filter(i=>(i.name+" "+i.category+" "+i.location).toLowerCase().includes(q));document.getElementById("inventoryList").innerHTML=list.length?list.map(i=>`<div class="card"><div class="item"><div class="emoji">${i.emoji||"📦"}</div><div class="itembody"><div class="itemname">${esc(i.name)}</div><div class="meta">${esc(i.category)} · ${esc(i.location)}</div><div class="meta">${i.qty} ${esc(i.unit)} on hand · Reorder at ${i.threshold}</div></div><span class="pill ${status(i)}">${status(i)==="ok"?"In stock":status(i)==="low"?"Low":"Out"}</span></div><div class="actions" style="margin-top:12px"><button class="secondary" onclick="changeQty(${i.id},-1)">− Used</button><button class="secondary" onclick="changeQty(${i.id},1)">＋ Refill</button><button class="ghost" onclick="editItem(${i.id})">Edit</button></div></div>`).join(""):'<div class="card empty">No matching products. Add your first item.</div>'}
+function renderShopping(){document.getElementById("shoppingList").innerHTML=shopping.length?shopping.map((s,n)=>`<div class="card item"><input type="checkbox" style="width:20px;margin:0" onchange="bought(${n})"><div class="itembody"><div class="itemname">${esc(s.name)}</div><div class="meta">${esc(s.qty||"1")} · ${esc(s.note||"")}</div></div><button class="ghost" onclick="shopping.splice(${n},1);save();render()">×</button></div>`).join(""):'<div class="card empty">Your shopping list is empty. Low-stock items can be added here.</div>'}
+function renderInsights(){let total=items.reduce((s,i)=>s+(Number(i.price)||0)*i.qty,0);document.getElementById("insightSummary").innerHTML=`<div class="rowbetween"><span class="muted">Products tracked</span><strong>${items.length}</strong></div><hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><div class="rowbetween"><span class="muted">Estimated value on hand</span><strong>$${total.toFixed(2)}</strong></div><hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><div class="rowbetween"><span class="muted">Recorded usage events</span><strong>${activity.filter(a=>a.action==="used").length}</strong></div>`;document.getElementById("usageHistory").innerHTML=activity.filter(a=>a.action==="used").slice(0,12).map(a=>`<div class="card rowbetween"><div><strong>${esc(a.name)}</strong><div class="meta">${new Date(a.date).toLocaleString()}</div></div><span>−${a.amount}</span></div>`).join("")||'<div class="card empty">Record a few usage events to start building consumption history.</div>'}
+function showView(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.getElementById(v).classList.add("active");document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===v));}
+function changeQty(id,delta){let i=items.find(x=>x.id===id);if(!i)return;i.qty=Math.max(0,Number(i.qty)+delta);log(i,delta<0?"used":"replenished",Math.abs(delta));if(i.qty<=i.threshold&&!shopping.some(s=>s.name===i.name))shopping.push({name:i.name,qty:"1 "+i.unit,note:"Automatically added — low stock"});save();render();}
+function toShopping(id){let i=items.find(x=>x.id===id);if(i&&!shopping.some(s=>s.name===i.name))shopping.push({name:i.name,qty:"1 "+i.unit,note:"From household inventory"});save();render();showView("shopping")}
+function bought(n){let s=shopping[n];let i=items.find(x=>x.name.toLowerCase()===s.name.toLowerCase());if(i){let amount=parseFloat(s.qty)||1;i.qty+=amount;log(i,"replenished",amount)}shopping.splice(n,1);save();render();}
+function openModal(title,body){document.getElementById("modalTitle").textContent=title;document.getElementById("modalBody").innerHTML=body;document.getElementById("modal").classList.add("show")}
+function closeModal(){document.getElementById("modal").classList.remove("show")}
+function openItem(id){let i=id?items.find(x=>x.id===id):null;openModal(i?"Edit product":"Add product",`<form id="itemForm" onsubmit="saveItem(event,${id||"null"})"><div class="formgrid">
+<div class="full"><label>PRODUCT NAME</label><input name="name" required placeholder="e.g. Laundry detergent" value="${esc(i?.name||"")}"></div>
+<div><label>CATEGORY</label><input name="category" placeholder="Cleaning" value="${esc(i?.category||"")}"></div>
+<div><label>EMOJI</label><input name="emoji" value="${esc(i?.emoji||"📦")}"></div>
+<div><label>QUANTITY</label><input name="qty" type="number" min="0" step=".1" value="${i?.qty??0}"></div>
+<div><label>UNIT</label><input name="unit" placeholder="bottles, rolls…" value="${esc(i?.unit||"units")}"></div>
+<div><label>LOW-STOCK THRESHOLD</label><input name="threshold" type="number" min="0" step=".1" value="${i?.threshold??1}"></div>
+<div><label>UNIT PRICE ($)</label><input name="price" type="number" min="0" step=".01" value="${i?.price??0}"></div>
+<div class="full"><label>STORAGE LOCATION</label><select name="location">${locations.map(l=>`<option ${i?.location===l?"selected":""}>${esc(l)}</option>`).join("")}</select></div>
+</div><button style="width:100%;margin-top:8px">Save product</button></form>${i?`<button class="ghost" style="margin-top:10px" onclick="deleteItem(${i.id})">Delete product</button>`:""}`)}
+function saveItem(e,id){e.preventDefault();let f=new FormData(e.target),o=Object.fromEntries(f.entries());o.qty=Number(o.qty);o.threshold=Number(o.threshold);o.price=Number(o.price);if(id){Object.assign(items.find(x=>x.id===id),o)}else{items.push({...o,id:Date.now(),history:[]})}save();closeModal();render();}
+function editItem(id){openItem(id)}
+function deleteItem(id){if(confirm("Delete this product?")){items=items.filter(i=>i.id!==id);save();closeModal();render()}}
+function addLocation(){let name=prompt("Name this storage location:");if(name&&name.trim()&&!locations.includes(name.trim())){locations.push(name.trim());save();render()}}
+function showLocation(loc){let list=items.filter(i=>i.location===loc);openModal(loc,`<div>${list.length?list.map(i=>`<div class="card item"><div class="emoji">${i.emoji||"📦"}</div><div class="itembody"><strong>${esc(i.name)}</strong><div class="meta">${i.qty} ${esc(i.unit)}</div></div><div class="actions"><button class="secondary" onclick="changeQty(${i.id},-1);showLocation('${esc(loc)}')">−</button><button class="secondary" onclick="changeQty(${i.id},1);showLocation('${esc(loc)}')">＋</button></div></div>`).join(""):'<div class="empty">No products stored here yet.</div>'}</div><button style="width:100%" onclick="closeModal();openItem()">＋ Add product to this location</button>`)}
+function addShopping(){let name=prompt("What do you need to buy?");if(name&&name.trim()){shopping.push({name:name.trim(),qty:"1",note:"Manually added"});save();render()}}
+render();
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
+</script>
+</body></html>

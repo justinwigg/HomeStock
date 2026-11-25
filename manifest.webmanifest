@@ -1,0 +1,10 @@
+{
+  "name": "HomeStock Household Inventory",
+  "short_name": "HomeStock",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5f6f3",
+  "theme_color": "#243d35",
+  "description": "Shared household inventory and replenishment tracker",
+  "icons": []
+}
