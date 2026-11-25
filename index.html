@@ -310,7 +310,7 @@ function openItem(id){let i=id?items.find(x=>x.id===id):null;openModal(i?"Edit p
 <div><label>UNIT PRICE ($)</label><input name="price" type="number" min="0" step=".01" value="${i?.price??0}"></div>
 <div class="full"><label>STORAGE LOCATION</label><select name="location"> <option value="" ${!i?.location?"selected":""}>Unassigned</option> ${locations.map(l=>`<option value="${esc(l)}" ${i?.location===l?"selected":""}>${esc(l)}</option>`).join("")} </select></div>
 </div><button style="width:100%;margin-top:8px">Save product</button></form>${i?`<button class="ghost" style="margin-top:10px" onclick="deleteItem(${i.id})">Delete product</button>`:""}`)}
-function saveItem(e,id){e.preventDefault();let f=new FormData(e.target),o=Object.fromEntries(f.entries());o.qty=Number(o.qty);o.threshold=Number(o.threshold);o.price=Number(o.price);if(id){Object.assign(items.find(x=>x.id===id),o)}else{items.push({...o,id:Date.now(),history:[]})}save();closeModal();render();}
+function saveItem(e,id){e.preventDefault();let f=new FormData(e.target),o=Object.fromEntries(f.entries());o.qty=Number(o.qty);o.threshold=Number(o.threshold);o.price=Number(o.price);if(id){Object.assign(items.find(x=>x.id===id),o)}else{items.push({   ...o,   id: crypto.randomUUID(),   history: [] })}save();closeModal();render();}
 function editItem(id){openItem(id)}
 function deleteItem(id){if(confirm("Delete this product?")){items=items.filter(i=>i.id!==id);save();closeModal();render()}}
 function addLocation(){let name=prompt("Name this storage location:");if(name&&name.trim()&&!locations.includes(name.trim())){locations.push(name.trim());save();render()}}function renameLocation(oldName){
