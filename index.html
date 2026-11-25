@@ -296,8 +296,46 @@ function renderShopping(){document.getElementById("shoppingList").innerHTML=shop
 function renderInsights(){let total=items.reduce((s,i)=>s+(Number(i.price)||0)*i.qty,0);document.getElementById("insightSummary").innerHTML=`<div class="rowbetween"><span class="muted">Products tracked</span><strong>${items.length}</strong></div><hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><div class="rowbetween"><span class="muted">Estimated value on hand</span><strong>$${total.toFixed(2)}</strong></div><hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><div class="rowbetween"><span class="muted">Recorded usage events</span><strong>${activity.filter(a=>a.action==="used").length}</strong></div>`;document.getElementById("usageHistory").innerHTML=activity.filter(a=>a.action==="used").slice(0,12).map(a=>`<div class="card rowbetween"><div><strong>${esc(a.name)}</strong><div class="meta">${new Date(a.date).toLocaleString()}</div></div><span>−${a.amount}</span></div>`).join("")||'<div class="card empty">Record a few usage events to start building consumption history.</div>'}
 function showView(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.getElementById(v).classList.add("active");document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===v));}
 function changeQty(id,delta){let i=items.find(x=>x.id===id);if(!i)return;i.qty=Math.max(0,Number(i.qty)+delta);log(i,delta<0?"used":"replenished",Math.abs(delta));if(i.qty<=i.threshold&&!shopping.some(s=>s.name===i.name))shopping.push({name:i.name,qty:"1 "+i.unit,note:"Automatically added — low stock"});save();render();}
-function toShopping(id){let i=items.find(x=>x.id===id);if(i&&!shopping.some(s=>s.name===i.name))shopping.push({name:i.name,qty:"1 "+i.unit,note:"From household inventory"});save();render();showView("shopping")}
-function bought(n){let s=shopping[n];let i=items.find(x=>x.name.toLowerCase()===s.name.toLowerCase());if(i){let amount=parseFloat(s.qty)||1;i.qty+=amount;log(i,"replenished",amount)}shopping.splice(n,1);save();render();}
+function toShopping(id) {
+  let i = items.find(x => x.id === id);
+
+  if (i && !shopping.some(s =>
+    s.name.toLowerCase() === i.name.toLowerCase()
+  )) {
+    shopping.push({
+      id: crypto.randomUUID(),
+      name: i.name,
+      qty: "1 " + i.unit,
+      note: "From household inventory"
+    });
+  }
+
+  save();
+  render();
+  showView("shopping");
+}
+
+function bought(n) {
+  let s = shopping[n];
+  if (!s) return;
+
+  let i = items.find(x =>
+    x.name.toLowerCase() === s.name.toLowerCase()
+  );
+
+  if (i) {
+    let amount = parseFloat(s.qty) || 1;
+    i.qty += amount;
+    log(i, "replenished", amount);
+  }
+
+  shopping.splice(n, 1);
+  save();
+  render();
+}
+
+
+
 function openModal(title,body){document.getElementById("modalTitle").textContent=title;document.getElementById("modalBody").innerHTML=body;document.getElementById("modal").classList.add("show")}
 function closeModal(){document.getElementById("modal").classList.remove("show")}
 function openItem(id){let i=id?items.find(x=>x.id===id):null;openModal(i?"Edit product":"Add product",`<form id="itemForm" onsubmit="saveItem(event,${id||"null"})"><div class="formgrid">
