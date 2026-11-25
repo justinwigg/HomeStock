@@ -77,6 +77,33 @@ label{font-size:12px;color:var(--muted);font-weight:650}.formgrid{display:grid;g
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="sheethead"><h2 id="modalTitle">Add item</h2><button class="close" onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+
+const SUPABASE_URL = "https://gzximrekbxbhtbxlslns.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yVvQDGecx0i9Tib48GOKXg_ks2KLKBW";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+// Temporary connection test
+(async () => {
+  try {
+    const { error } = await supabaseClient
+      .from("households")
+      .select("id")
+      .limit(1);
+
+    if (error) throw error;
+
+    alert("HomeStock successfully connected to Supabase!");
+  } catch (error) {
+    console.error("Supabase connection error:", error);
+    alert("Connection failed: " + error.message);
+  }
+})();
+
 const seedItems=[
 {id:1,name:"Laundry detergent",category:"Laundry",qty:1,unit:"bottle",threshold:2,location:"Laundry room",emoji:"🧺",price:14.99,history:[]},
 {id:2,name:"Paper towels",category:"Paper goods",qty:1,unit:"pack",threshold:2,location:"Pantry",emoji:"🧻",price:18.99,history:[]},
