@@ -296,8 +296,55 @@ function render(){
  document.getElementById("recent").innerHTML=activity.slice(0,4).map(a=>`<div class="card"><div class="rowbetween"><strong>${esc(a.name)}</strong><span class="muted">${a.action==="used"?"−":"+"}${a.amount}</span></div><div class="meta">${a.action==="used"?"Used":"Replenished"} · ${new Date(a.date).toLocaleDateString()}</div></div>`).join("")||'<div class="card empty">Your updates will appear here.</div>';
  renderInventory();renderShopping();renderInsights();
 }
-function card(i){let st=status(i);return `<div class="card"><div class="item"><div class="emoji">${i.emoji||"📦"}</div><div class="itembody"><div class="itemname">${esc(i.name)}</div><div class="meta">${i.qty} ${esc(i.unit)} · ${esc(i.location)}</div></div><span class="pill ${st}">${st==="out"?"Out of stock":"Low stock"}</span></div><div class="actions" style="margin-top:12px"><button class="secondary" onclick="changeQty(${i.id},-1)">− Used 1</button><button class="secondary" onclick="changeQty(${i.id},1)">＋ Add 1</button><button class="ghost" onclick="toShopping(${i.id})">＋ List</button></div></div>`}
-function renderInventory(){let q=(document.getElementById("search")?.value||"").toLowerCase();let list=items.filter(i=>(i.name+" "+i.category+" "+i.location).toLowerCase().includes(q));document.getElementById("inventoryList").innerHTML=list.length?list.map(i=>`<div class="card"><div class="item"><div class="emoji">${i.emoji||"📦"}</div><div class="itembody"><div class="itemname">${esc(i.name)}</div><div class="meta">${esc(i.category)} · ${esc(i.location||"Unassigned")}</div><div class="meta">${i.qty} ${esc(i.unit)} on hand · Reorder at ${i.threshold}</div></div><span class="pill ${status(i)}">${status(i)==="ok"?"In stock":status(i)==="low"?"Low":"Out"}</span></div><div class="actions" style="margin-top:12px"><button class="secondary" onclick="changeQty(${i.id},-1)">− Used</button><button class="secondary" onclick="changeQty(${i.id},1)">＋ Refill</button><button class="ghost" onclick="editItem(${i.id})">Edit</button></div></div>`).join(""):'<div class="card empty">No matching products. Add your first item.</div>'}
+function card(i) {
+  let st = status(i);
+  return `
+    <div class="card">
+      <div class="item">
+        <div class="emoji">${i.emoji || "📦"}</div>
+        <div class="itembody">
+          <div class="itemname">${esc(i.name)}</div>
+          <div class="meta">${i.qty} ${esc(i.unit)} · ${esc(i.location)}</div>
+        </div>
+        <span class="pill ${st}">${st === "out" ? "Out of stock" : "Low stock"}</span>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="secondary" onclick='changeQty(${JSON.stringify(i.id)},-1)'>− Used 1</button>
+        <button class="secondary" onclick='changeQty(${JSON.stringify(i.id)},1)'>＋ Add 1</button>
+        <button class="ghost" onclick='toShopping(${JSON.stringify(i.id)})'>＋ List</button>
+      </div>
+    </div>`;
+}
+function renderInventory() {
+  let q = (document.getElementById("search")?.value || "").toLowerCase();
+
+  let list = items.filter(i =>
+    (i.name + " " + i.category + " " + i.location).toLowerCase().includes(q)
+  );
+
+  document.getElementById("inventoryList").innerHTML = list.length
+    ? list.map(i => `
+      <div class="card">
+        <div class="item">
+          <div class="emoji">${i.emoji || "📦"}</div>
+          <div class="itembody">
+            <div class="itemname">${esc(i.name)}</div>
+            <div class="meta">${esc(i.category)} · ${esc(i.location || "Unassigned")}</div>
+            <div class="meta">${i.qty} ${esc(i.unit)} on hand · Reorder at ${i.threshold}</div>
+          </div>
+          <span class="pill ${status(i)}">
+            ${status(i) === "ok" ? "In stock" : status(i) === "low" ? "Low" : "Out"}
+          </span>
+        </div>
+        <div class="actions" style="margin-top:12px">
+          <button class="secondary" onclick='changeQty(${JSON.stringify(i.id)},-1)'>− Used</button>
+          <button class="secondary" onclick='changeQty(${JSON.stringify(i.id)},1)'>＋ Refill</button>
+          <button class="ghost" onclick='editItem(${JSON.stringify(i.id)})'>Edit</button>
+        </div>
+      </div>
+    `).join("")
+    : '<div class="card empty">No matching products. Add your first item.</div>';
+}
 function renderShopping(){document.getElementById("shoppingList").innerHTML=shopping.length?shopping.map((s,n)=>`<div class="card item"><input type="checkbox" style="width:20px;margin:0" onchange="bought(${n})"><div class="itembody"><div class="itemname">${esc(s.name)}</div><div class="meta">${esc(s.qty||"1")} · ${esc(s.note||"")}</div></div><button class="ghost" onclick="shopping.splice(${n},1);save();render()">×</button></div>`).join(""):'<div class="card empty">Your shopping list is empty. Low-stock items can be added here.</div>'}
 function renderInsights(){let total=items.reduce((s,i)=>s+(Number(i.price)||0)*i.qty,0);document.getElementById("insightSummary").innerHTML=`<div class="rowbetween"><span class="muted">Products tracked</span><strong>${items.length}</strong></div><hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><div class="rowbetween"><span class="muted">Estimated value on hand</span><strong>$${total.toFixed(2)}</strong></div><hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><div class="rowbetween"><span class="muted">Recorded usage events</span><strong>${activity.filter(a=>a.action==="used").length}</strong></div>`;document.getElementById("usageHistory").innerHTML=activity.filter(a=>a.action==="used").slice(0,12).map(a=>`<div class="card rowbetween"><div><strong>${esc(a.name)}</strong><div class="meta">${new Date(a.date).toLocaleString()}</div></div><span>−${a.amount}</span></div>`).join("")||'<div class="card empty">Record a few usage events to start building consumption history.</div>'}
 function showView(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.getElementById(v).classList.add("active");document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===v));}
