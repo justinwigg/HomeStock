@@ -163,5 +163,5 @@ function showLocation(loc){let list=items.filter(i=>i.location===loc);openModal(
 function addShopping(){let name=prompt("What do you need to buy?");if(name&&name.trim()){shopping.push({name:name.trim(),qty:"1",note:"Manually added"});save();render()}}
 render();
 if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </body></html>
